@@ -1,0 +1,718 @@
+<!--
+ * MIT License
+ * 
+ * Copyright (c) 2018 NECSTLab, Politecnico di Milano
+ * Copyright (c) 2020 Xilinx, Inc
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+-->
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="white" />
+	<style>
+	button:hover {
+		background: #000;
+		color:#fff;
+	}
+	button.small
+	{
+		padding: 2px 10px; 
+		font-size: 13px;
+	}
+	button, button:disabled {
+		border:solid 1px; 
+		margin:2px 0;
+		padding: 5px 10px; 
+		font-size: 16px;
+		cursor: pointer;
+	}
+	button:disabled {
+		color:#aaa;
+		background: #fff;
+		cursor: default;
+	}
+	html {
+		background: #fcfcfc;
+	}
+	table
+	{
+		width: 100%;
+		border-collapse: collapse;
+	}
+	table td
+	{
+		padding: 4px 2px;
+		width: 33%;
+		text-align: center;
+		border:solid 1px #ddd;
+	}
+	div.svg-container
+	{
+		display: inline-block;
+		position: relative;
+		width: 100%;
+		max-width: 1241px;
+		vertical-align: middle; 
+	}
+	div.svg-container svg
+	{
+		position: absolute; 
+		left:0; 
+		top:0; 
+	}
+	div.svg-container img
+	{
+		width:100%;
+	}
+	div.mapContainer
+	{
+		width:100%;
+		text-align: center;
+		position: relative;
+	}
+	div.mapContainer svg
+	{
+		left:0; 
+		top:0; 
+		max-width: 350px;
+		margin:0 auto;
+		display: inline-block;
+	}
+	div.container
+	{
+		max-width:1241px;
+		min-width: 680px;
+		margin:0 auto;
+	}
+	h1
+	{
+		padding-top:0px; 
+		margin:5px;
+		text-transform: uppercase; 
+		font-family: verdana; 
+		font-size: 22px; text-align: center;
+	}
+	img.logo
+	{
+		width:140px;
+		max-width: 20vw;
+		margin:20px auto;
+		min-width: 100px;
+	}
+	div.side-col
+	{
+		width:160px;
+		display: inline-block; 
+		vertical-align: top;
+		text-align: center;
+	}
+	div.center-col
+	{
+		width:calc(100% - 382px); 
+		display: inline-block; 
+		vertical-align: top;
+		margin:0 30px;
+	}
+	div.center-elements
+	{
+		display: flex; 
+		flex-direction: column;
+	} 
+	@media (max-width: 800px) {
+		div.center-elements 
+		{
+			flex-direction: column-reverse;
+		}
+		table td
+		{
+			font-size: 14px;
+		}
+	}
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1 style="">
+			5-point relative pose problem solver
+		</h1>
+	</div>
+	<div class="container">
+		<div class="svg-container">
+			<svg id="pointsCont" preserveAspectratio="xMinYMin meet"
+			fill="none" fill-opacity="0" stroke="#F00" stroke-width="10.0" viewBox="0 0 1241 376">
+			</svg>
+			<img  id="img_cont" src="" alt=""/>
+		</div>
+	</div>
+
+	<div class="container" style="margin:5px auto;">
+		<div class="side-col">
+			<div>
+				<button id="run_btn_cpu" disabled="true" onclick="run('cpu');">Run 5-point algorithm on CPU</button><br/>
+			</div>
+
+			<a target="blank" href="https://www.pynq.io/">
+				<img src="img/pynq-logo.png" class="logo" alt=""/>
+			</a>
+
+		</div><div class="center-col">
+			<div style="text-align: center;">
+				<div>
+					<div style="margin:0 0 10px 0;">
+						<input id="ws_address" type="text" value="">
+						<button class="small" id="connect_btn" onclick="connect()">Connect</button>
+						<button class="small" style="display: none" id="disconnect_btn" onclick="disconnect()">Disconnect</button>
+						<b style="white-space: nowrap;">RANSAC ITERATIONS:</b>
+						<select id="ransac_iter">
+							<option value="100">100</option>
+							<option value="200">200</option>
+							<option value="1000">1000</option>
+							<option selected="true" value="2000">2000</option>
+							<option value="4000">4000</option>
+						</select>
+					</div>
+					<div class="center-elements">
+						<div>
+							<table>
+								<thead>
+									<tr>
+										<td colspan="3">AVG. TIME PER FRAME BREAKDOWN</td>
+									</tr>
+									<tr>
+										<td>Compute Essential matrix</td>
+										<td>RANSAC evaluation</td>
+										<td>Total</td>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td id="essential_time">&nbsp;
+										</td>	
+										<td id="ransac_time">
+										</td>
+										<td id="total_time">
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div class="mapContainer">
+							<svg id="svgCont" preserveAspectratio="xMinYMin meet"
+								viewBox="0 0 200 200" fill="white" fill-opacity="0" stroke="#F00" stroke-width="2.0">
+								<path stroke="#000" stroke-width="1" id="pathTrue" d="M 100 100"/>
+								<path id="path" d="M 100 100"/>
+								<circle id="car" cx="100" cy="100" r="6" stroke="#00F" stroke-width="2"/>
+							</svg>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div><div class="side-col">
+			<button id="run_btn_fpga" disabled="true" onclick="run('fpga');">Run 5-point algorithm on FPGA</button>
+
+			<a target="blank" href="https://www.xilinx.com/">
+				<img src="img/xilinx-logo.png" class="logo" alt=""/>
+			</a>
+		</div>
+		
+	</div>
+	<div style="text-align: center; margin:20px;">
+	</div>
+
+
+	<script type="text/javascript">
+		// constants
+		DEFAULT_WS_ADDRESS = 'ws://localhost:8080';
+		IMAGES_PATH = 'data/';
+		LAST_IMAGE_ID = 4520;
+		RANSAC_THS = 2e-8;
+		BATCH_SIZE = 60;
+		AVG_TIME_WINDOW = 20;
+		REFRESH_TIME_MS = 5;
+		BUFFERING_SIZE = 5;
+
+		// global variables
+		var minX, minY, maxX, maxY, stroke, curRot, px, py, pz, imgId, ptsOffset, ptsRequestOffset, ws, algorithm, last_update, last_total_time, buffering;
+
+		var ready_received = 0;
+		var request_cntr = 0;
+		var response_cntr = 0;
+		var batchOffset = 0;
+		var run_id = 0;
+		var ransac_time_ar = [];
+		var essential_time_ar = [];
+		var message_queue = [];
+		var gui_updater_interval = null;
+
+		// connect to 5-point server
+		var wsData = {
+			'cpu' : {
+				'algorithm' : 0
+			},
+			'fpga' : {
+				'algorithm' : 1
+			},
+		}
+
+		function init()
+		{
+			// html initialization
+			document.getElementById('ws_address').value = DEFAULT_WS_ADDRESS;
+
+			initImage();
+		}
+		
+
+		function initWebsocket()
+		{
+			var wsAddress = document.getElementById('ws_address').value;
+			ws = new WebSocket(wsAddress);
+
+			var closure = function(ws) {
+				ws.onopen = function() {
+					console.log('CONNECT');
+					document.getElementById('connect_btn').style.display = 'none';
+					document.getElementById('disconnect_btn').style.display = 'inline-block';
+					document.getElementById('disconnect_btn').disabled = false;
+					document.getElementById('connect_btn').disabled = false;
+				};
+				ws.onclose = function() {
+					console.log('DISCONNECT');
+					document.getElementById('connect_btn').style.display = 'inline-block';
+					document.getElementById('disconnect_btn').style.display = 'none';
+					document.getElementById('disconnect_btn').disabled = false;
+					document.getElementById('connect_btn').disabled = false;
+					document.getElementById('run_btn_cpu').disabled = true;
+					document.getElementById('run_btn_fpga').disabled = true;
+					ready_received = 0;
+					if(gui_updater_interval) {
+						clearInterval(gui_updater_interval);
+						gui_updater_interval = null;
+					}
+				};
+				ws.onmessage = function(event) {
+					if(ready_received == 0) {
+						if(event.data.startsWith('READY')) {
+							ready_received = 1;
+							document.getElementById('run_btn_cpu').disabled = false;
+							document.getElementById('run_btn_fpga').disabled = false;
+
+						}
+						console.log('SERVER LOG: ' + event.data)
+					} else {
+						var values = event.data.split(' ');
+						var message_id = values[0];
+						if(Math.floor(message_id / 100000) != run_id) {
+							console.log('SKIPPING MESSAGE FROM PREVIOUS RUN: ' + message_id);
+							return;
+						}
+						
+						console.log('SERVER RESPONSE (' + response_cntr + ') ' + event.data);
+						message_queue.push(event.data)
+						response_cntr += 1;
+						sendBatchRequest();						
+					}
+				};
+			};
+			closure(ws);
+		}
+
+		function connect(wsIdx)
+		{
+			if(ws != null) {
+				disconnect();
+			}
+			initWebsocket();
+			document.getElementById('connect_btn').disabled = true;
+		}
+
+		function disconnect()
+		{
+			if(ws != null) {
+				document.getElementById('run_btn_cpu').disabled = true;
+				document.getElementById('run_btn_fpga').disabled = true;
+				document.getElementById('disconnect_btn').disabled = true;
+				ws.close();
+				ws = null;
+				ready_received = 0;
+			}
+		}
+		
+		function run(wsIdx) 
+		{
+			if(!ready_received) {
+				return;
+			}
+
+			if(gui_updater_interval) {
+				clearInterval(gui_updater_interval);
+				gui_updater_interval = null;
+			}
+
+			last_update = new Date();
+			last_total_time = 0;
+			message_queue = [];
+			buffering = true;
+
+			gui_updater_interval = setInterval(
+				function() {
+					if(buffering) {
+						if(message_queue.length > BUFFERING_SIZE) {
+							buffering = false;
+						}
+					} else {
+						cur_time = new Date();
+						if(cur_time.getTime() - last_update.getTime() > last_total_time) {
+							if(message_queue.length > 0) {
+								message = message_queue.shift();
+								last_update = new Date();
+								last_total_time = wsCallback(message) * 1.05;
+							}
+						}
+					}
+				}, REFRESH_TIME_MS
+			);
+
+			/*
+			var minX = -222;
+			var maxX = 343 +222;
+			var minY = -429;
+			var maxY = 68 + 429;
+			*/
+
+			// initialize global variables
+			run_id += 1;
+			request_cntr = 0;
+			response_cntr = 0;
+			imgId = 1;
+			ptsOffset = 0;
+			ptsRequestOffset = 0;
+			minX = 12;
+			maxX = 188;
+			minY = 12;
+			maxY = 188;
+			px = 0;
+			py = 0;
+			pz = 0;
+			ransac_time_ar = [];
+			essential_time_ar = [];
+			stroke = 2.0;
+			curRot = [
+				[1.0, 0.0, 0.0],
+				[0.0, 1.0, 0.0],
+				[0.0, 0.0, 1.0],
+			];
+			algorithm = wsData[wsIdx]['algorithm'];
+
+			// draw initial point within the path
+			var path = document.getElementById("path");
+			path.setAttribute("d", "M 100 100");
+			var path = document.getElementById("pathTrue");
+			path.setAttribute("d", "M 100 100");
+			document.getElementById("svgCont").setAttribute("viewBox", "0 0 200 200");
+			document.getElementById("svgCont").setAttribute("stroke-width", "2");
+
+			drawMatchingPoints();
+			sendBatchRequest();
+		}
+
+		function drawMatchingPoints()
+		{
+			// draw points and update image
+			svgData = "";
+			var cont = document.getElementById("pointsCont");
+			while (cont.firstChild) {
+				cont.removeChild(cont.firstChild);
+			}
+
+			for(var i = ptsOffset; i < ptsOffset + numPts[imgId]; i++) {
+				var circle = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+				circle.setAttribute('cx', p1x[i]);
+				circle.setAttribute('cy', p1y[i]);
+				circle.setAttribute('r', 2);
+				circle.setAttribute('stroke-width', 3);
+				circle.setAttribute('stroke', '#F00');
+				circle.setAttribute('fill', '#F00');
+				cont.appendChild(circle);
+				
+				var circle = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+				circle.setAttribute('cx', p2x[i]);
+				circle.setAttribute('cy', p2y[i]);
+				circle.setAttribute('r', 2);
+				circle.setAttribute('stroke-width', 3);
+				circle.setAttribute('stroke', '#0F0');
+				circle.setAttribute('fill', '#0F0');
+				cont.appendChild(circle);
+
+				var line = document.createElementNS("http://www.w3.org/2000/svg", 'line');
+				line.setAttribute('x1', p1x[i] - 16);
+				line.setAttribute('y1', p1y[i]);
+				line.setAttribute('x2', p1x[i] + 16);
+				line.setAttribute('y2', p1y[i]);
+				line.setAttribute('r', 2);
+				line.setAttribute('stroke-width', 2);
+				line.setAttribute('stroke', '#F00');
+				line.setAttribute('fill', '#F00');
+				cont.appendChild(line);
+
+				var line = document.createElementNS("http://www.w3.org/2000/svg", 'line');
+				line.setAttribute('x1', p1x[i]);
+				line.setAttribute('y1', p1y[i] - 16);
+				line.setAttribute('x2', p1x[i]);
+				line.setAttribute('y2', p1y[i] + 16);
+				line.setAttribute('r', 2);
+				line.setAttribute('stroke-width', 2);
+				line.setAttribute('stroke', '#F00');
+				line.setAttribute('fill', '#F00');
+				cont.appendChild(line);
+
+				var line = document.createElementNS("http://www.w3.org/2000/svg", 'line');
+				line.setAttribute('x1', p1x[i]);
+				line.setAttribute('y1', p1y[i]);
+				line.setAttribute('x2', p2x[i]);
+				line.setAttribute('y2', p2y[i]);
+				line.setAttribute('r', 2);
+				line.setAttribute('stroke-width', 2);
+				line.setAttribute('stroke', '#00F');
+				line.setAttribute('fill', '#00F');
+				cont.appendChild(line);
+			}
+		}
+
+		function initImage()
+		{
+			url = IMAGES_PATH + "000000.png";
+			document.getElementById("img_cont").src = url;
+			document.getElementById("img_cont").onerror = function(){
+				this.src = "img/img-not-found.png"
+			};
+		}
+
+		function updateImage()
+		{
+			imgId += 1;
+
+			var url = "" + imgId;
+			url = IMAGES_PATH + url.padStart(6,"0") + ".png";
+			
+			document.getElementById("img_cont").src = url;
+			ptsOffset += numPts[imgId];
+
+		}
+
+		function sendBatchRequest()
+		{
+			// send the batch in case we have obtained the response for at least half of the requests
+			if(request_cntr - response_cntr > BATCH_SIZE / 2) {
+				return;
+			}
+
+			var targetSize = request_cntr + BATCH_SIZE;
+			if (targetSize >= LAST_IMAGE_ID) {
+				targetSize = LAST_IMAGE_ID;
+			}
+			
+			for(; request_cntr < targetSize; request_cntr++) {
+				var message = (run_id*100000 + request_cntr) + ' ' + numPts[request_cntr] + ' ' + algorithm + ' ' 
+					+ document.getElementById('ransac_iter').value + ' ' + RANSAC_THS;
+
+				for(var i = ptsRequestOffset; i < ptsRequestOffset + numPts[request_cntr]; i++) {
+					message += ' ' + m1x[i] + ' ' + m1y[i];
+				}
+				for(var i = ptsRequestOffset; i < ptsRequestOffset + numPts[request_cntr]; i++) {
+					message += ' ' + m2x[i] + ' ' + m2y[i];
+				}
+ 
+				message += "\n";
+
+				ptsRequestOffset += numPts[request_cntr];
+				ws.send(message);
+				console.log('SERVER REQUEST (' + request_cntr + ') ' + message);
+			}
+			
+		}
+
+		function wsCallback(data)
+		{
+			// read rotation matrix and translation vector
+			var values = data.split(' ');
+			var rot = [], tran = [];
+			var message_id = values[0];			
+
+			response_num = message_id - run_id * 100000;
+
+			for(var i = 0; i < 3; i++) {
+				rot[i] = []
+				for(var j = 0; j < 3; j++) {
+					rot[i][j] = Number(values[1 + i*3 + j]);
+				} 
+			}
+
+			for(var i = 0; i < 3; i++) {
+				tran[i] = Number(values[10 + i]);
+			}
+
+			// update time stats
+			var ransac_time = Number(values[13]);
+			var essential_time = Number(values[14]);
+			var ransac_gen_time = Number(values[15]);
+			var total_time = ransac_time + essential_time + ransac_gen_time;
+
+			ransac_time_ar.push(ransac_time);
+			essential_time_ar.push(essential_time);
+
+			var end = ransac_time_ar.length;
+			var start = end - AVG_TIME_WINDOW;
+			if(start < 0) {
+				start = 0;
+			}
+			var win_size = end - start;
+
+			var avg_ransac_time = 0;
+			var avg_essential_time = 0;
+			for(var i = start; i < end; i++) {
+				avg_ransac_time += ransac_time_ar[i];
+				avg_essential_time += essential_time_ar[i];
+			}
+			avg_ransac_time /= win_size;
+			avg_essential_time /= win_size;
+
+			avg_ransac_time = Math.round(avg_ransac_time * 1000000) / 1000000;
+			avg_essential_time = Math.round(avg_essential_time * 1000000) / 1000000;
+			var total_time_view = Math.round((avg_ransac_time + avg_essential_time) * 1000000) / 1000000;
+
+			document.getElementById('ransac_time').innerHTML = avg_ransac_time;
+			document.getElementById('essential_time').innerHTML = avg_essential_time;
+			document.getElementById('total_time').innerHTML = total_time_view + " <span style=\"white-space:nowrap\">(" + 
+				Math.round((1 / total_time)*10) / 10 + " FPS)</span>";
+
+			// recover scale from real world coordinates
+			// NOTE: the relative pose algorithm cannot retrieve this information
+			// hence we assume we can rely on an external sensor for this
+			var rx = traj[(response_num+1)*12 + 3] - traj[response_num*12 + 3];
+			var ry = traj[(response_num+1)*12 + 7] - traj[response_num*12 + 7];
+			var rz = traj[(response_num+1)*12 + 11] - traj[response_num*12 + 11];
+			var rnorm2 = rx*rx + ry*ry + rz*rz;
+			var rdist = Math.sqrt(rnorm2);
+			var curnorm2 = tran[0]*tran[0] + tran[1]*tran[1] + tran[2]*tran[2];
+			var curdist = Math.sqrt(curnorm2);
+			var scale = rdist / curdist;
+
+			// update current position:
+			var temp = [0, 0, 0]
+			for(var i = 0; i < 3; i++) {
+				for(var j = 0; j < 3; j++) {
+					temp[i] += curRot[i][j]*tran[j]*scale;
+				} 
+			}
+
+			px = px + temp[0];
+			py = py + temp[1];
+			pz = pz + temp[2];
+
+			var x = px + 100;
+			var y = -pz + 100;
+
+			// update rotation matrix
+			var tmp = [];
+			for(var i = 0; i < 3; i++) {
+				tmp[i] = []
+				for(var j = 0; j < 3; j++) {
+					tmp[i][j] = 0;
+					for(var k = 0; k < 3; k++) {
+						tmp[i][j] += curRot[i][k]*rot[k][j];
+					}
+				}
+			}
+			curRot = tmp;
+			
+			var trueX = traj[imgId*12 + 3] + 100;
+			var trueY = -traj[imgId*12 + 11] + 100;
+
+			minX = x < minX ? x : minX;
+			maxX = x > maxX ? x : maxX;
+			minY = y < minY ? y : minY;
+			maxY = y > maxY ? y : maxY;
+
+			minX = trueX < minX ? trueX : minX;
+			maxX = trueX > maxX ? trueX : maxX;
+			minY = trueY < minY ? trueY : minY;
+			maxY = trueY > maxY ? trueY : maxY;
+
+			w = maxX - minY;
+			h = maxY - minY
+
+			stroke = 2.0 * (w / 200);
+
+			// draw new position in path
+			document.getElementById("svgCont").setAttribute("viewBox", (minX-12) + " " + (minY-12) + " " + (w+24) + " " + (h+24));
+			document.getElementById("svgCont").setAttribute("stroke-width", stroke);
+			document.getElementById("car").setAttribute("cx", x);
+			document.getElementById("car").setAttribute("cy", y);
+			document.getElementById("car").setAttribute("stroke-width", stroke);
+
+			var path = document.getElementById("path");
+			path.setAttribute("d", path.getAttribute("d") + " L " + x + " " + y);
+
+			var path = document.getElementById("pathTrue");
+			path.setAttribute("d", path.getAttribute("d") + " L " + trueX + " " + trueY);
+
+			updateImage();
+			if(response_num < LAST_IMAGE_ID - 1) {
+				drawMatchingPoints();
+			} else {
+				if(gui_updater_interval) {
+					clearInterval(gui_updater_interval);
+					gui_updater_interval = null;
+				}
+			}
+
+			return total_time * 1000;
+		}
+
+		init();
+	</script>
+	<script type="text/javascript">
+		function loadError()
+		{
+			alert("The resource '" + this.src + "' could not be loaded.\n" + 
+				  "Make sure it exists, and if needed look at the " + 
+				  "'get-demo-data' notebook.");
+		}
+
+		function loadScript(url){
+			var script = document.createElement("script");
+			script.type = "text/javascript";
+			script.src = url;
+			script.onerror = loadError;
+			document.getElementsByTagName("head")[0].appendChild(script);
+		}
+	</script>
+	<script type="text/javascript">
+		loadScript("data/traj.js");
+	</script>
+	<script type="text/javascript">
+		loadScript("data/pts.js");
+	</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+[build-system]
+requires = ["setuptools", "wheel", "pynq>=2.5.1", "pybind11>=2.4", "pygit2", "distro"]

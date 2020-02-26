@@ -1,0 +1,18 @@
+{
+    "xilinx_u200_xdma_201830_2": {
+        "url": "http://bit.ly/2Pc3Eam",
+        "md5sum": "e3a9b6cf274d2531100087206d7dc445"
+    },
+    "xilinx_u250_xdma_201830_2": {
+        "url": "http://bit.ly/39OYUPV",
+        "md5sum": "19baa7ac68602bc9415a8c3627396d9e"
+    },
+    "xilinx_u280_xdma_201920_1": {
+        "url": "http://bit.ly/2SIMwv1",
+        "md5sum": "742c703e519c40d4eab29a2b0473efc4"
+    },
+    "xilinx_u50_xdma_201920_1": {
+        "url": "http://bit.ly/2wypqyO",
+        "md5sum": "8861866aeb7ffc765185accad9a9ce07"
+    }
+}

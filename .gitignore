@@ -1,0 +1,10 @@
+overlay/_xclbin* 
+overlay/_xo*
+overlay/.Xil
+overlay/*.xclbin
+*.log 
+*.jou  
+*.info
+*.ltx
+*.pb
+*.link_summary
